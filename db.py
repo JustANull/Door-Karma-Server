@@ -13,6 +13,11 @@ def fixFormatString(fmt):
 
 #Michael has signed off on not sanitizing inputs
 class DoorKarmaDatabase:
+	"""
+		Front end to the door karma database
+		Allows the middleware writer a much easier time interfacing with MySQL so that errors can be avoided
+	"""
+
 	def __init__(self, host, username, password, dbname, tablename):
 		logging.info("Initializing database connection")
 		try:
@@ -30,10 +35,13 @@ class DoorKarmaDatabase:
 
 	def closeConnection(self):
 		"""This will immediately close the database connection. Call on cleanup"""
+
 		logging.info("Closing database connection")
 		self.db.close()
 
 	def userRequest(self, fromname, submitterPlatform, submitterVersion):
+		"""Adds a new user request log to the database for later finishing. Stores the request ID into the dict"""
+
 		logging.info("User {0} ({1}::{2}) requested".format(
 			fromname, submitterPlatform, submitterVersion))
 		cmd = "INSERT INTO " + self.tablename + " (rFrom, platSubType, platSubVer) VALUES(%s, %s, %s);"
@@ -51,6 +59,8 @@ class DoorKarmaDatabase:
 		self.fromnameToID[fromname] = self.cur.lastrowid
 
 	def userFilled(self, fromname, byname, fillerPlatform, fillerVersion):
+		"""Fills the user request from before with the remaining information"""
+
 		logging.info("User {0} is filling {1}'s request ({2}::{3})".format(
 			byname, fromname, fillerPlatform, fillerVersion))
 		cmd = "UPDATE " + self.tablename + " SET rFill=%s, tFill=NOW(), platFillType=%s, platFillVer=%s WHERE eventNumber=%s;"
