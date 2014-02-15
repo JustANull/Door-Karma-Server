@@ -2,8 +2,6 @@ import logging
 import MySQLdb
 import time
 
-logging.basicConfig(level=logging.INFO)
-
 #I do not claim to write beautiful code
 def fixFormatString(fmt):
 	final = ""
@@ -32,6 +30,7 @@ class DoorKarmaDatabase:
 
 	def closeConnection(self):
 		"""This will immediately close the database connection. Call on cleanup"""
+		logging.info("Closing database connection")
 		self.db.close()
 
 	def userRequest(self, fromname, submitterPlatform, submitterVersion):
@@ -66,16 +65,3 @@ class DoorKarmaDatabase:
 			self.db.rollback()
 			logging.critical("Database error: {0}".format(str(e)))
 			raise e
-
-if __name__ == "__main__":
-	obj = None
-	try:
-		obj = DoorKarmaDatabase("enterprise.local", "santiago", "cole", "doorKarma", "events")
-		#obj.cur.execute('INSERT INTO events (rFrom, platSubType, platSubVer) VALUES("Michael Aldridge", "OSX", "whocares");')
-		obj.userRequest("Michael Aldridge", "OSX", "whocares")
-		obj.userRequest("Josh", "table", "1")
-		obj.userFilled("Michael Aldridge", "Vadim", "vodka", "bear")
-		obj.userFilled("Josh", "Santiago", "Columbian", "drug lord")
-	except Exception, e:
-		obj.closeConnection()
-		raise e
