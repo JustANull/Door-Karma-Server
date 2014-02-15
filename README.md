@@ -1,4 +1,4 @@
 Door-Karma-Server
 =================
 
-The server code that is on the server is here.
+The backend code written in Python is stored here. It uses MySQLdb (`pip install MySQL-Python`) to interface with MySQL and also uses pysimplesoap to implement the XML RPC server.
