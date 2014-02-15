@@ -2,8 +2,6 @@ import logging
 import MySQLdb
 import time
 
-logging.basicConfig(level=logging.INFO)
-
 #I do not claim to write beautiful code
 def fixFormatString(fmt):
 	final = ""
