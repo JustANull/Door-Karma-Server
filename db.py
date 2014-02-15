@@ -1,7 +1,8 @@
 import logging
 import MySQLdb
+import time
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 #I do not claim to write beautiful code
 def fixFormatString(fmt):
@@ -29,6 +30,10 @@ class DoorKarmaDatabase:
 		self.tablename = tablename
 		self.fromnameToID = dict()
 
+	def closeConnection(self):
+		"""This will immediately close the database connection. Call on cleanup"""
+		self.db.close()
+
 	def userRequest(self, fromname, submitterPlatform, submitterVersion):
 		logging.info("User {0} ({1}::{2}) requested".format(
 			fromname, submitterPlatform, submitterVersion))
@@ -44,15 +49,21 @@ class DoorKarmaDatabase:
 			self.db.rollback()
 			logging.critical("Database error: {0}".format(str(e)))
 			raise e
-		self.fromnameToID[fromname] = self.db.insert_id()
+		self.fromnameToID[fromname] = self.cur.lastrowid
 
 	def userFilled(self, fromname, byname, fillerPlatform, fillerVersion):
-		#WARNING: PROVIDE PROPER COLUMN NAMES
-		cmd = "UPDATE " + self.tablename + " SET rFill=%s, tFill=%s, platFillType=%s, platFillVer=%s WHERE eventNumber=%s;"
+		logging.info("User {0} is filling {1}'s request ({2}::{3})".format(
+			byname, fromname, fillerPlatform, fillerVersion))
+		cmd = "UPDATE " + self.tablename + " SET rFill=%s, tFill=NOW(), platFillType=%s, platFillVer=%s WHERE eventNumber=%s;"
 		try:
-			logging.debug("About to execute \"{0}\"".format(fixFormatString(cmd).format(byname, time.time(), fillerPlatform, fillerVersion, self.fromnameToID[fromname])))
-			self.cur.execute(cmd, (byname, time.time(), fillerPlatform, fillerVersion, self.fromnameToID[fromname]))
+			logging.debug("About to execute \"{0}\"".format(fixFormatString(cmd).format(byname, fillerPlatform, fillerVersion, self.fromnameToID[fromname])))
+			self.cur.execute(cmd, (byname, fillerPlatform, fillerVersion, self.fromnameToID[fromname]))
+			logging.debug("Successfully executed; Committing")
+			self.db.commit()
+			logging.debug("Committed")
 		except MySQLdb.OperationalError, e:
+			logging.debug("Commit failed; Rolling back")
+			self.db.rollback()
 			logging.critical("Database error: {0}".format(str(e)))
 			raise e
 
@@ -62,6 +73,9 @@ if __name__ == "__main__":
 		obj = DoorKarmaDatabase("enterprise.local", "santiago", "cole", "doorKarma", "events")
 		#obj.cur.execute('INSERT INTO events (rFrom, platSubType, platSubVer) VALUES("Michael Aldridge", "OSX", "whocares");')
 		obj.userRequest("Michael Aldridge", "OSX", "whocares")
+		obj.userRequest("Josh", "table", "1")
+		obj.userFilled("Michael Aldridge", "Vadim", "vodka", "bear")
+		obj.userFilled("Josh", "Santiago", "Columbian", "drug lord")
 	except Exception, e:
-		obj.db.close()
+		obj.closeConnection()
 		raise e
