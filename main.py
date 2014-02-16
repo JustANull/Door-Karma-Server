@@ -42,11 +42,13 @@ def requestKarma(uuid, platform, version, name, stoken):
 def fillKarma(filluuid, uuid, name, platform, version, stoken):
     """complete a karma request row in the database and remove the karma from the active queue"""
     if stoken == secret:
+        logging.debug("{0} is trying to fill {1}'s door karma".format(filluuid, uuid))
         db.userFilled(filluuid, uuid, name, platform, version)
         del karmaTickets[uuid]
+        logging.info("Door karma filled by {0}".format(name))
         return "karma filled"
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User {0} tried to fill karma".format(name))
         return "NOT AUTHORIZED"
 
 @app.route('/readyKarma/<uuid>/<name>/<stoken>')
@@ -54,9 +56,10 @@ def fillKarma(filluuid, uuid, name, platform, version, stoken):
 def readyKarma(uuid, name, stoken):
     if stoken == secret:
         karmaGivers[uuid]=name
+        logging.info("{0} checked in to provide door karma.".format(name))
         return "karma engaged"
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User {0} tried to provide karma".format(name))
         return "NOT AUTHORIZED"
 
 @app.route('/unreadyKarma/<uuid>/<name>/<stoken>')
@@ -64,18 +67,21 @@ def readyKarma(uuid, name, stoken):
 def unreadayKarma(uuid, name, stoken):
     if stoken == secret:
         del karmaGivers[uuid]
+        logging.info("{0} asked for the karma giver's list".format(name))
         return "your heart is coal"
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User {0} tried to not provide karma".format(name))
         return "NOT AUTHORIZED"
 
 @app.route('/userListKarma/<stoken>')
 @crossdomain(origin='*')
 def karmaTicketList(stoken):
+    """the people who provide karma need to know who wants it"""
     if stoken == secret:
-        return str(karmaTickets)
+        logging.info("{0} asked for the list of karma recipients".format(name))
+        return str(karmaTickets) + " " + str(karmaGivers)
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User {0} tried to list karma requests".format(name))
         return "NOT AUTHORIZED"
 
 @app.route('/waitingPollKarma/<stoken>')
@@ -83,9 +89,10 @@ def karmaTicketList(stoken):
 def pollWaitingKarma(stoken):
     """these are the people who want karma, they need to know who is coming"""
     if stoken == secret:
+        logging.info("Someone outside asked if anyone was coming.")
         return "someone is coming"
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User {0} tried to get karma givers list".format(name))
         return "NOT AUTHORIZED"
 
 @app.route('/readyPollKarma/<stoken>')
@@ -93,6 +100,7 @@ def pollWaitingKarma(stoken):
 def readyPoll(stoken):
     """these are the people that are ready to give karma, they get the list of people who want it"""
     if stoken == secret:
+        logging.info("Karma giver wanted an update on possible recipients")
         return str(karmaTickets)
     else:
         logging.warn("User {0} tried to get karma".format(name))
@@ -102,6 +110,7 @@ def readyPoll(stoken):
 @crossdomain(origin='*')
 def systemMessage(stoken):
     """this function is for sending system messages"""
+    logging.info("The system message was sent")
     return sysMsg
 
 @app.route('/killKarma/<name>/<uuid>/<stoken>')
@@ -109,6 +118,7 @@ def systemMessage(stoken):
 def killKarma(name, uuid):
     """pull the record out of the RAM table"""
     if stoken==secret:
+        logging.info("Removing {0} from the karma request list".format(name))
         del karmaTickets[uuid]
         return "ticket removed"
     else:
