@@ -34,3 +34,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+
+#Assorted python files
+*.py~
+*.pyc
+\#*
