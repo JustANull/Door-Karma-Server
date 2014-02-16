@@ -3,3 +3,4 @@ pip
 	gcm-client
 	apns-client
 	pysimplesoap
+	python-flask

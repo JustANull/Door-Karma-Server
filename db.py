@@ -29,7 +29,7 @@ class DoorKarmaDatabase:
 			logging.critical("Database error: {0}".format(str(e)))
 			raise e
 		self.tablename = tablename
-		self.fromnameToID = dict()
+		self.fromuuidToID = dict()
 
 	def closeConnection(self):
 		'''This will immediately close the database connection. Call on cleanup'''
@@ -37,15 +37,15 @@ class DoorKarmaDatabase:
 		logging.info("Closing database connection")
 		self.db.close()
 
-	def userRequest(self, fromname, submitterPlatform, submitterVersion, submitterUUID):
+	def userRequest(self, fromuuid, submitterName, submitterPlatform, submitterVersion):
 		"""Adds a new user request log to the database for later finishing. Stores the request ID into the dict"""
 
 		logging.info("User {0} ({1}::{2}) requested".format(
-			fromname, submitterPlatform, submitterVersion))
+			submitterName, submitterPlatform, submitterVersion))
 		cmd = "INSERT INTO " + self.tablename + " (rFrom, platSubType, platSubVer, platSubUUID) VALUES(%s, %s, %s, %s);"
 		try:
-			logging.debug("About to execute \n{0}".format(fixFormatString(cmd).format(fromname, submitterPlatform, submitterVersion, submitterUUID)))
-			self.cur.execute(cmd, (fromname, submitterPlatform, submitterVersion, submitterUUID))
+			logging.debug("About to execute \n{0}".format(fixFormatString(cmd).format(submitterName, submitterPlatform, submitterVersion, fromuuid)))
+			self.cur.execute(cmd, (submitterName, submitterPlatform, submitterVersion, fromuuid))
 			logging.debug("Successfully executed; Committing")
 			self.db.commit()
 			logging.debug("Committed")
@@ -54,17 +54,17 @@ class DoorKarmaDatabase:
 			self.db.rollback()
 			logging.critical("Database error: {0}".format(str(e)))
 			raise e
-		self.fromnameToID[fromname] = self.cur.lastrowid
+		self.fromuuidToID[fromuuid] = self.cur.lastrowid
 
-	def userFilled(self, fromname, byname, fillerPlatform, fillerVersion, fillerUUID):
+	def userFilled(self, fromuuid, byuuid, fillerName, fillerPlatform, fillerVersion):
 		"""Fills the user request from before with the remaining information"""
 
 		logging.info("User {0} is filling {1}'s request ({2}::{3})".format(
-			byname, fromname, fillerPlatform, fillerVersion))
+			byuuid, fromuuid, fillerPlatform, fillerVersion))
 		cmd = "UPDATE " + self.tablename + " SET rFill=%s, tFill=NOW(), platFillType=%s, platFillVer=%s, platFillUUID=%s WHERE eventNumber=%s;"
 		try:
-			logging.debug("About to execute \"{0}\"".format(fixFormatString(cmd).format(byname, fillerPlatform, fillerVersion, fillerUUID, self.fromnameToID[fromname])))
-			self.cur.execute(cmd, (byname, fillerPlatform, fillerVersion, fillerUUID, self.fromnameToID[fromname]))
+			logging.debug("About to execute \"{0}\"".format(fixFormatString(cmd).format(fillerName, fillerPlatform, fillerVersion, byuuid, self.fromuuidToID[fromuuid])))
+			self.cur.execute(cmd, (fillerName, fillerPlatform, fillerVersion, byuuid, self.fromuuidToID[fromuuid]))
 			logging.debug("Successfully executed; Committing")
 			self.db.commit()
 			logging.debug("Committed")

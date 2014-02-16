@@ -1,0 +1,12 @@
+{
+	"db":{
+		"host":"10.0.6.42",
+		"db":"doorKarma",
+		"table":"events",
+		"user":"santiago",
+		"pass":"cole"
+	},
+	"karmaServer":{
+		"secret":"blowfish321@"
+		}
+}
