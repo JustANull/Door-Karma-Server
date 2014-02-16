@@ -1,0 +1,5 @@
+pip
+	MySQL-python
+	gcm-client
+	apns-client
+	pysimplesoap
