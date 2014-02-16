@@ -8,9 +8,8 @@ from daemonizer import Daemon
 import time
 
 conf = config.getConfig()
-
+database = False
 app = Flask(__name__)
-database = db.DoorKarmaDatabase(conf["db"]["host"], conf["db"]["user"], conf["db"]["pass"], conf["db"]["db"], conf["db"]["table"])
 secret=conf["karmaServer"]["secret"]
 
 karmaTickets = {}
@@ -111,9 +110,9 @@ def systemMessage(stoken):
     logging.info("The system message was sent")
     return json.dumps({'lastUpdate': 0, 'message': sysMsg})
 
-@app.route('/killKarma/<name>/<uuid>/<stoken>')
+@app.route('/killKarma/<uuid>/<name>/<stoken>')
 @crossdomain(origin='*')
-def killKarma(name, uuid):
+def killKarma(uuid, name, stoken):
     """pull the record out of the RAM table"""
     if stoken==secret:
         logging.info("Removing {0} from the karma request list".format(name))
@@ -125,7 +124,9 @@ def killKarma(name, uuid):
 
 class DoorKarmaDaemon(Daemon):
     def run(self):
+        global database
+        database = db.DoorKarmaDatabase(conf["db"]["host"], conf["db"]["user"], conf["db"]["pass"], conf["db"]["db"], conf["db"]["table"])
         app.run(host=conf["karmaServer"]["bindaddr"])
-
+        
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
