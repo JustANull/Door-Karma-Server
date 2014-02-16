@@ -6,10 +6,10 @@ import time
 def fixFormatString(fmt):
 	final = ""
 	inc = 0
-	for part in fmt.split('%s'):
-		final += part + '\'{' + str(inc) + '}\''
+	for part in fmt.split("%s"):
+		final += part + "'{" + str(inc) + "}'"
 		inc += 1
-	return final[:-len(str('\'{'+str(inc - 1)+'}\''))]
+	return final[:-len(str("'{"+str(inc - 1)+"}'"))]
 
 #Michael has signed off on not sanitizing inputs
 class DoorKarmaDatabase:
@@ -39,15 +39,15 @@ class DoorKarmaDatabase:
 		logging.info("Closing database connection")
 		self.db.close()
 
-	def userRequest(self, fromname, submitterPlatform, submitterVersion):
+	def userRequest(self, fromname, submitterPlatform, submitterVersion, submitterUUID):
 		"""Adds a new user request log to the database for later finishing. Stores the request ID into the dict"""
 
 		logging.info("User {0} ({1}::{2}) requested".format(
 			fromname, submitterPlatform, submitterVersion))
-		cmd = "INSERT INTO " + self.tablename + " (rFrom, platSubType, platSubVer) VALUES(%s, %s, %s);"
+		cmd = "INSERT INTO " + self.tablename + " (rFrom, platSubType, platSubVer, platSubUUID) VALUES(%s, %s, %s, %s);"
 		try:
-			logging.debug("About to execute \n{0}".format(fixFormatString(cmd).format(fromname, submitterPlatform, submitterVersion)))
-			self.cur.execute(cmd, (fromname, submitterPlatform, submitterVersion))
+			logging.debug("About to execute \n{0}".format(fixFormatString(cmd).format(fromname, submitterPlatform, submitterVersion, submitterUUID)))
+			self.cur.execute(cmd, (fromname, submitterPlatform, submitterVersion, submitterUUID))
 			logging.debug("Successfully executed; Committing")
 			self.db.commit()
 			logging.debug("Committed")
@@ -58,15 +58,15 @@ class DoorKarmaDatabase:
 			raise e
 		self.fromnameToID[fromname] = self.cur.lastrowid
 
-	def userFilled(self, fromname, byname, fillerPlatform, fillerVersion):
+	def userFilled(self, fromname, byname, fillerPlatform, fillerVersion, fillerUUID):
 		"""Fills the user request from before with the remaining information"""
 
 		logging.info("User {0} is filling {1}'s request ({2}::{3})".format(
 			byname, fromname, fillerPlatform, fillerVersion))
-		cmd = "UPDATE " + self.tablename + " SET rFill=%s, tFill=NOW(), platFillType=%s, platFillVer=%s WHERE eventNumber=%s;"
+		cmd = "UPDATE " + self.tablename + " SET rFill=%s, tFill=NOW(), platFillType=%s, platFillVer=%s, platFillUUID=%s WHERE eventNumber=%s;"
 		try:
-			logging.debug("About to execute \"{0}\"".format(fixFormatString(cmd).format(byname, fillerPlatform, fillerVersion, self.fromnameToID[fromname])))
-			self.cur.execute(cmd, (byname, fillerPlatform, fillerVersion, self.fromnameToID[fromname]))
+			logging.debug("About to execute \"{0}\"".format(fixFormatString(cmd).format(byname, fillerPlatform, fillerVersion, fillerUUID, self.fromnameToID[fromname])))
+			self.cur.execute(cmd, (byname, fillerPlatform, fillerVersion, fillerUUID, self.fromnameToID[fromname]))
 			logging.debug("Successfully executed; Committing")
 			self.db.commit()
 			logging.debug("Committed")
