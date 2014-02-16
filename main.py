@@ -2,6 +2,7 @@ from flask import Flask, request
 from crossdomain import crossdomain
 import db
 import config
+import json
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -32,10 +33,10 @@ def requestKarma(uuid, platform, version, name, stoken):
         db.userRequest(uuid, name, platform, version)
         karmaTickets[uuid]=name
         logging.info("Karma requested for {0}".format(name))
-        return "KARMA IN QUEUE"
+        return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
-        return "NOT AUTHORIZED"
+        return json.dumps({'success': False})
 
 @app.route('/fillKarma/<filluuid>/<uuid>/<name>/<platform>/<version>/<stoken>')
 @crossdomain(origin='*')
@@ -45,55 +46,50 @@ def fillKarma(filluuid, uuid, name, platform, version, stoken):
         logging.debug("{0} is trying to fill {1}'s door karma".format(filluuid, uuid))
         db.userFilled(filluuid, uuid, name, platform, version)
         del karmaTickets[uuid]
-        logging.info("Door karma filled by {0}".format(name))
-        return "karma filled"
+        return json.dumps({'success': True})
     else:
-        logging.warn("User {0} tried to fill karma".format(name))
-        return "NOT AUTHORIZED"
+        logging.warn("User {0} tried to get karma".format(name))
+        return json.dumps({'success': False})
 
 @app.route('/readyKarma/<uuid>/<name>/<stoken>')
 @crossdomain(origin='*')
 def readyKarma(uuid, name, stoken):
     if stoken == secret:
         karmaGivers[uuid]=name
-        logging.info("{0} checked in to provide door karma.".format(name))
-        return "karma engaged"
+        return json.dumps({'success': True})
     else:
-        logging.warn("User {0} tried to provide karma".format(name))
-        return "NOT AUTHORIZED"
+        logging.warn("User {0} tried to get karma".format(name))
+        return json.dumps({'success': False})
 
 @app.route('/unreadyKarma/<uuid>/<name>/<stoken>')
 @crossdomain(origin='*')
 def unreadayKarma(uuid, name, stoken):
     if stoken == secret:
         del karmaGivers[uuid]
-        logging.info("{0} asked for the karma giver's list".format(name))
-        return "your heart is coal"
+        return json.dumps({'success': True})
     else:
-        logging.warn("User {0} tried to not provide karma".format(name))
-        return "NOT AUTHORIZED"
+        logging.warn("User {0} tried to get karma".format(name))
+        return json.dumps({'success': False})
 
 @app.route('/userListKarma/<stoken>')
 @crossdomain(origin='*')
 def karmaTicketList(stoken):
     """the people who provide karma need to know who wants it"""
     if stoken == secret:
-        logging.info("{0} asked for the list of karma recipients".format(name))
-        return str(karmaTickets) + " " + str(karmaGivers)
+        return json.dumps({'success': True, 'waiting': karmaTickets, 'ready': karmaGivers})
     else:
-        logging.warn("User {0} tried to list karma requests".format(name))
-        return "NOT AUTHORIZED"
+        logging.warn("User {0} tried to get karma".format(name))
+        return json.dumps({'success': False})
 
 @app.route('/waitingPollKarma/<stoken>')
 @crossdomain(origin='*')
 def pollWaitingKarma(stoken):
     """these are the people who want karma, they need to know who is coming"""
     if stoken == secret:
-        logging.info("Someone outside asked if anyone was coming.")
-        return "someone is coming"
+        return json.dumps({'success': True})
     else:
-        logging.warn("User {0} tried to get karma givers list".format(name))
-        return "NOT AUTHORIZED"
+        logging.warn("User {0} tried to get karma".format(name))
+        return json.dumps({'success': False})
 
 @app.route('/readyPollKarma/<stoken>')
 @crossdomain(origin='*')
@@ -101,10 +97,10 @@ def readyPoll(stoken):
     """these are the people that are ready to give karma, they get the list of people who want it"""
     if stoken == secret:
         logging.info("Karma giver wanted an update on possible recipients")
-        return str(karmaTickets)
+        return json.dumps({'success': True, 'waiting': karmaTickets})
     else:
         logging.warn("User {0} tried to get karma".format(name))
-        return "NOT AUTHORIZED"
+        return json.dumps({'success': False})
         
 @app.route('/messagePollKarma/<stoken>')
 @crossdomain(origin='*')
@@ -120,10 +116,10 @@ def killKarma(name, uuid):
     if stoken==secret:
         logging.info("Removing {0} from the karma request list".format(name))
         del karmaTickets[uuid]
-        return "ticket removed"
+        return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
-        return "NOT AUTHORIZED"
+        return json.dumps({'success': False})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
