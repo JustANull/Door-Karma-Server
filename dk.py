@@ -4,13 +4,13 @@ import db
 import config
 import json
 import logging
-
-logging.basicConfig(level=logging.DEBUG)
+from daemonizer import Daemon
+import time
 
 conf = config.getConfig()
 
 app = Flask(__name__)
-db = db.DoorKarmaDatabase(conf["db"]["host"], conf["db"]["user"], conf["db"]["pass"], conf["db"]["db"], conf["db"]["table"])
+database = db.DoorKarmaDatabase(conf["db"]["host"], conf["db"]["user"], conf["db"]["pass"], conf["db"]["db"], conf["db"]["table"])
 secret=conf["karmaServer"]["secret"]
 
 karmaTickets = {}
@@ -30,7 +30,7 @@ def requestKarma(uuid, platform, version, name, stoken):
     """request karma from the server"""
     if stoken == secret:
         logging.debug("attempting to request karma for {0}".format(name))
-        db.userRequest(uuid, name, platform, version)
+        database.userRequest(uuid, name, platform, version)
         karmaTickets[uuid]=name
         logging.info("Karma requested for {0}".format(name))
         return json.dumps({'success': True})
@@ -43,8 +43,8 @@ def requestKarma(uuid, platform, version, name, stoken):
 def fillKarma(filluuid, uuid, name, platform, version, stoken):
     """complete a karma request row in the database and remove the karma from the active queue"""
     if stoken == secret:
-        logging.debug("{0} is trying to fill {1}'s door karma".format(filluuid, uuid))
-        db.userFilled(filluuid, uuid, name, platform, version)
+        logging.debug("{0} is trying to fill {1}'s door karma".format(uuid, filluuid))
+        database.userFilled(filluuid, uuid, name, platform, version)
         del karmaTickets[uuid]
         return json.dumps({'success': True})
     else:
@@ -56,6 +56,7 @@ def fillKarma(filluuid, uuid, name, platform, version, stoken):
 def readyKarma(uuid, name, stoken):
     if stoken == secret:
         karmaGivers[uuid]=name
+        logging.info("{0} is ready to give karma".format(name))
         return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
@@ -66,6 +67,7 @@ def readyKarma(uuid, name, stoken):
 def unreadayKarma(uuid, name, stoken):
     if stoken == secret:
         del karmaGivers[uuid]
+        logging.info("{0} is no longetr ready to give karma".format(name))
         return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
@@ -107,7 +109,7 @@ def readyPoll(stoken):
 def systemMessage(stoken):
     """this function is for sending system messages"""
     logging.info("The system message was sent")
-    return sysMsg
+    return json.dumps({'lastUpdate': 0, 'message': sysMsg})
 
 @app.route('/killKarma/<name>/<uuid>/<stoken>')
 @crossdomain(origin='*')
@@ -120,6 +122,10 @@ def killKarma(name, uuid):
     else:
         logging.warn("User {0} tried to get karma".format(name))
         return json.dumps({'success': False})
+
+class DoorKarmaDaemon(Daemon):
+    def run(self):
+        app.run(host=conf["karmaServer"]["bindaddr"])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
